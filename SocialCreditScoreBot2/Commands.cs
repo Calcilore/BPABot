@@ -81,8 +81,8 @@ public class Commands : ApplicationCommandModule {
         
         // BPA is the average sentiment, and it has a range of 1 to 5
         float average = (score.Total / score.Sentences) * 2f + 3f;
-        DiscordColor color = average > 2.8 ? DiscordColor.Green : 
-            average < 2.2 ? DiscordColor.Red : DiscordColor.Yellow;
+        DiscordColor color = average > 3.2 ? DiscordColor.Green : 
+            average < 2.8 ? DiscordColor.Red : DiscordColor.Yellow;
         
         string message = $"{username}'s BPA is **{average:F2}**.\n";
         message += $"{username} has a total of **{(score.Total*20f):F2}** Behavior Points.";
@@ -133,7 +133,6 @@ public class Commands : ApplicationCommandModule {
             return;
         }
 
-        string name = $"{id}_{DateTimeOffset.Now.ToUnixTimeMilliseconds()}.wav";
         byte[] data = speakData[id].ToArray();
         speakData[id] = new List<byte>();
         speakWait[id] = false;
@@ -148,15 +147,5 @@ public class Commands : ApplicationCommandModule {
         ScoreManager.AddScore(id, sentiment, text);
         
         Console.WriteLine(text + ": " + sentiment);
-
-        // Process ffmpeg = Process.Start(new ProcessStartInfo {
-        //     FileName = "ffmpeg",
-        //     Arguments = $@"-ac 2 -f s16le -ar {args.AudioFormat.SampleRate / 2} -i pipe:0 -ac 2 -ar 44100 out/{name}",
-        //     RedirectStandardInput = true
-        // })!;
-        //
-        // await ffmpeg.StandardInput.BaseStream.WriteAsync(data);
-        // await ffmpeg.WaitForExitAsync();
-        // ffmpeg.Dispose();
     }
 }
