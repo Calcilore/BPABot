@@ -98,7 +98,6 @@ public class Commands : ApplicationCommandModule {
                 .WithColor(color)));
     }
     
-    
     public static async Task MessageHandler(DiscordClient _, DSharpPlus.EventArgs.MessageCreateEventArgs e) {
         string text = e.Message.Content;
         float sentiment = SentimentAnalyser.Analyse(text);
