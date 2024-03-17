@@ -99,6 +99,8 @@ public class Commands : ApplicationCommandModule {
     }
     
     public static async Task MessageHandler(DiscordClient _, DSharpPlus.EventArgs.MessageCreateEventArgs e) {
+        if (e.Author.IsBot) return;
+        
         string text = e.Message.Content;
         float sentiment = SentimentAnalyser.Analyse(text);
         
@@ -108,7 +110,7 @@ public class Commands : ApplicationCommandModule {
     }
 
     private async Task ReceiveHandler(VoiceNextConnection _, VoiceReceiveEventArgs args) {
-        if (args.User == null) return;
+        if (args.User == null || args.User.IsBot) return;
 
         ulong id = args.User.Id;
 
