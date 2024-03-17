@@ -72,7 +72,9 @@ public class Commands : ApplicationCommandModule {
         Score score = ScoreManager.GetScore(user.Id);
 
         if (score.Sentences == 0) {
-            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().WithContent("No sentences have been analysed yet."));
+            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(new DiscordEmbedBuilder()
+                .WithTitle("No sentences have been analysed yet.")
+                .WithColor(DiscordColor.Green)));
             return;
         }
         
