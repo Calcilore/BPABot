@@ -150,6 +150,6 @@ public class Commands : ApplicationCommandModule {
         
         ScoreManager.AddScore(id, sentiment, text);
         
-        Console.WriteLine(text + ": " + sentiment);
+        Console.WriteLine(args.User.Username + ": " + text + " - " + sentiment);
     }
 }
