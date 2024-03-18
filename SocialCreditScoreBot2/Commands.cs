@@ -4,6 +4,7 @@ using DSharpPlus.SlashCommands;
 using DSharpPlus.Entities;
 using DSharpPlus.VoiceNext;
 using DSharpPlus.VoiceNext.EventArgs;
+using SocialCreditScoreBot2.Implementations;
 
 namespace SocialCreditScoreBot2;
 
@@ -104,7 +105,7 @@ public class Commands : ApplicationCommandModule {
         if (e.Author.IsBot) return;
         
         string text = e.Message.Content;
-        float sentiment = SentimentAnalyser.Analyse(text);
+        float sentiment = Program.SentimentAnalyser.Analyse(text);
         
         ScoreManager.AddScore(e.Author.Id, sentiment/8f, text);
         
@@ -143,10 +144,8 @@ public class Commands : ApplicationCommandModule {
         
         // this is after wait is set to false so that the next speaking event can be handled while this is being processed
 
-        Dictionary<string, JsonElement> speech = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(SentimentAnalyser.Synthesize(data));
-        string text = speech["text"].GetString();
-
-        float sentiment = SentimentAnalyser.Analyse(text);
+        string text = Program.SpeechToText.Synthesize(data);
+        float sentiment = Program.SentimentAnalyser.Analyse(text);
         
         ScoreManager.AddScore(id, sentiment, text);
         
