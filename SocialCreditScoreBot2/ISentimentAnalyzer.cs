@@ -1,6 +1,6 @@
 namespace SocialCreditScoreBot2;
 
 public interface ISentimentAnalyzer {
-    public void Init();
-    public float Analyse(string text);
+    public Task<bool> Init();
+    public Task<float> Analyse(string text);
 }

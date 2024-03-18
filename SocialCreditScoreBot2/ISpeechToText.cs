@@ -1,6 +1,6 @@
 namespace SocialCreditScoreBot2;
 
 public interface ISpeechToText {
-    public void Init(string modelPath);
-    public string Synthesize(byte[] data);
+    public Task<bool> Init(string modelPath);
+    public Task<string> Synthesize(byte[] data);
 }

@@ -40,8 +40,12 @@ internal static class Program {
                 SpeechToText = new Implementations.Vosk();
                 break;
             
+            case "whisper":
+                SpeechToText = new Implementations.Whisper();
+                break;
+            
             default:
-                Console.WriteLine("Invalid SpeechToTextLibrary in config, valid options are: vosk");
+                Console.WriteLine("Invalid SpeechToTextLibrary in config, valid options are: vosk, whisper");
                 return;
         }
 
@@ -77,10 +81,17 @@ internal static class Program {
             EnableIncoming = true
         });
         Console.WriteLine("Registered VoiceNext");
-        
-        SentimentAnalyser.Init();
+
+        if (!await SentimentAnalyser.Init()) {
+            Console.WriteLine("Failed to start SentimentAnalyser");
+            return;
+        }
         Console.WriteLine("Registered SentimentAnalyser");
-        SpeechToText.Init(Config.Model);
+        
+        if (!await SpeechToText.Init(Config.Model)) {
+            Console.WriteLine("Failed to start SpeechToText");
+            return;
+        }
         Console.WriteLine("Registered SpeechToText");
 
         await discord.ConnectAsync();

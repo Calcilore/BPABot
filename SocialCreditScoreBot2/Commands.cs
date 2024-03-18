@@ -102,10 +102,10 @@ public class Commands : ApplicationCommandModule {
     }
     
     public static async Task MessageHandler(DiscordClient _, DSharpPlus.EventArgs.MessageCreateEventArgs e) {
-        if (e.Author.IsBot) return;
+        if (e.Author.IsBot && Program.Config.IgnoreBots) return;
         
         string text = e.Message.Content;
-        float sentiment = Program.SentimentAnalyser.Analyse(text);
+        float sentiment = await Program.SentimentAnalyser.Analyse(text);
         
         ScoreManager.AddScore(e.Author.Id, sentiment/8f, text);
         
@@ -113,7 +113,7 @@ public class Commands : ApplicationCommandModule {
     }
 
     private async Task ReceiveHandler(VoiceNextConnection _, VoiceReceiveEventArgs args) {
-        if (args.User == null || args.User.IsBot) return;
+        if (args.User == null || (args.User.IsBot && Program.Config.IgnoreBots)) return;
 
         ulong id = args.User.Id;
 
@@ -138,14 +138,14 @@ public class Commands : ApplicationCommandModule {
             return;
         }
 
-        byte[] data = speakData[id].ToArray();
+        byte[] data = speakData[id].ToArray(); // this data is in 16 bit little endian PCM format
         speakData[id] = new List<byte>();
         speakWait[id] = false;
         
         // this is after wait is set to false so that the next speaking event can be handled while this is being processed
 
-        string text = Program.SpeechToText.Synthesize(data);
-        float sentiment = Program.SentimentAnalyser.Analyse(text);
+        string text = await Program.SpeechToText.Synthesize(data);
+        float sentiment = await Program.SentimentAnalyser.Analyse(text);
         
         ScoreManager.AddScore(id, sentiment, text);
         

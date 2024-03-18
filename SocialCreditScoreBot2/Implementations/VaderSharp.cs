@@ -4,13 +4,13 @@ using Vosk;
 namespace SocialCreditScoreBot2.Implementations;
 
 public class VaderSharp : ISentimentAnalyzer {
-    public void Init() {}
+    public Task<bool> Init() {return Task.FromResult(true);}
 
-    public float Analyse(string text) {
+    public Task<float> Analyse(string text) {
         SentimentIntensityAnalyzer analyzer = new SentimentIntensityAnalyzer();
         
         SentimentAnalysisResults results = analyzer.PolarityScores(text);
-
-        return (float)results.Compound;
+        
+        return Task.FromResult((float)results.Compound);
     }
 }
