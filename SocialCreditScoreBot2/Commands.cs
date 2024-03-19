@@ -1,10 +1,9 @@
-using System.Text.Json;
+using System.Text;
 using DSharpPlus;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.Entities;
 using DSharpPlus.VoiceNext;
 using DSharpPlus.VoiceNext.EventArgs;
-using SocialCreditScoreBot2.Implementations;
 
 namespace SocialCreditScoreBot2;
 
@@ -45,9 +44,8 @@ public class Commands : ApplicationCommandModule {
         await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
         
         VoiceNextExtension? vnext = ctx.Client.GetVoiceNext();
-
-        VoiceNextConnection? connection = vnext.GetConnection(ctx.Guild);
-        if (connection == null) {
+        
+        if (!LeaveVoiceChannel(ctx.Client, ctx.Guild)) {
             await ctx.EditResponseAsync(new DiscordWebhookBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
                     .WithTitle("There is no voice connection to leave")
@@ -55,17 +53,28 @@ public class Commands : ApplicationCommandModule {
             return;
         }
         
-        connection.VoiceReceived -= ReceiveHandler;
-        connection.Dispose();
-
         await ctx.EditResponseAsync(new DiscordWebhookBuilder()
             .AddEmbed(new DiscordEmbedBuilder()
                 .WithTitle("Left Voice Channel")
                 .WithColor(DiscordColor.Green)));
     }
+    
+    public static bool LeaveVoiceChannel(DiscordClient client, DiscordGuild guild) {
+        VoiceNextExtension? vnext = client.GetVoiceNext();
+
+        VoiceNextConnection? connection = vnext.GetConnection(guild);
+        if (connection == null) {
+            return false;
+        }
+        
+        connection.VoiceReceived -= ReceiveHandler;
+        connection.Dispose();
+
+        return true;
+    }
 
     [SlashCommand("score", "Gets the current social credit score of the user.")]
-    public async Task ScoreCommand(InteractionContext ctx, [Option("user", "The user to get the score of.")] DiscordUser? user = null) {
+    public async Task ScoreCommand(InteractionContext ctx, [Option("User", "The user to get the score of.")] DiscordUser? user = null) {
         if (user == null) {
             user = ctx.User;
         }
@@ -75,7 +84,7 @@ public class Commands : ApplicationCommandModule {
         if (score.Sentences == 0) {
             await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(new DiscordEmbedBuilder()
                 .WithTitle("No sentences have been analysed yet.")
-                .WithColor(DiscordColor.Green)));
+                .WithColor(DiscordColor.Red)));
             return;
         }
         
@@ -83,15 +92,15 @@ public class Commands : ApplicationCommandModule {
         string username = member.Mention;
         
         // BPA is the average sentiment, and it has a range of 1 to 5
-        double average = (score.Total / score.Sentences) * 2f + 3f;
+        double average = score.GetBpa();
         DiscordColor color = average > 3.2 ? DiscordColor.Green : 
             average < 2.8 ? DiscordColor.Red : DiscordColor.Yellow;
         
         string message = $"{username}'s BPA is **{average:F2}**.\n";
-        message += $"{username} has a total of **{(score.Total*20f):F3}** Behavior Points.";
+        message += $"{username} has a total of **{(score.GetTotal()):F3}** Behavior Points.";
         if (score.BestScoreText != "") {
-            message += $"\n\nBest Sentence: **{(score.BestScoreValue * 2f + 3f):F4}**: **\"{score.BestScoreText }\"**" + 
-                       $"\nWorst Sentence: **{(score.WorstScoreValue * 2f + 3f):F4}**: **\"{score.WorstScoreText}\"**";
+            message += $"\n\nBest Sentence: **{(score.GetBest()):F3}**: **\"{score.BestScoreText }\"**" + 
+                       $"\nWorst Sentence: **{(score.GetWorst()):F3}**: **\"{score.WorstScoreText}\"**";
         }
         
         await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
@@ -99,6 +108,64 @@ public class Commands : ApplicationCommandModule {
                 .WithTitle("BPA Score")
                 .WithDescription(message)
                 .WithColor(color)));
+    }
+    
+    [SlashCommand("leaderboard", "Gets the top 12 users with the highest social credit score.")]
+    public async Task LeaderboardCommand(InteractionContext ctx, [
+        Option("SortMode", "Whether to sort by total or average")] SortMode sort = SortMode.Total, 
+        [Option("SortOrder", "Whether to sort by best or worst")] SortOrder order = SortOrder.BestFirst) {
+        
+        List<KeyValuePair<ulong, Score>> scores = ScoreManager.Scores.ToList();
+        
+        // remove users that are not in the current guild
+        IEnumerable<ulong> members = (await ctx.Guild.GetAllMembersAsync()).Select(v => v.Id);
+        scores.RemoveAll(v => !members.Contains(v.Key));
+        
+        // sort scores, in best first order
+        scores.Sort((a, b) => {
+            double aScore;
+            double bScore;
+
+            switch (sort) {
+                case SortMode.Average:
+                    aScore = a.Value.Total / a.Value.Sentences;
+                    bScore = b.Value.Total / b.Value.Sentences;
+                    break;
+
+                case SortMode.Total:
+                    aScore = a.Value.Total;
+                    bScore = b.Value.Total;
+                    break;
+                
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(sort), sort, null);
+            }
+
+            return bScore.CompareTo(aScore);
+        });
+        
+        // get the range of scores to display
+        IEnumerable<int> range = order switch {
+            SortOrder.BestFirst => Enumerable.Range(0, Math.Min(3, scores.Count)),
+            SortOrder.WorstFirst => Enumerable.Range(Math.Max(0, scores.Count-3), scores.Count).Reverse(),
+            _ => throw new ArgumentOutOfRangeException(nameof(order), order, null)
+        };
+        
+        StringBuilder message = new StringBuilder();
+        foreach (int i in range) {
+            DiscordUser member = await ctx.Client.GetUserAsync(scores[i].Key);
+            
+            if (order == SortOrder.BestFirst)
+                message.Append($"{i+1}. {member.Mention} has a BPA of **{(scores[i].Value.GetBpa()):F2}** and a total of **{(scores[i].Value.GetTotal()):F3}**\n");
+            else
+                message.Append($"{i+1}\\. {member.Mention} has a BPA of **{(scores[i].Value.GetBpa()):F2}** and a total of **{(scores[i].Value.GetTotal()):F3}**\n");
+        }
+        
+        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
+            .AddEmbed(new DiscordEmbedBuilder()
+                .WithTitle("Leaderboard")
+                .WithDescription(message.ToString())
+                .WithColor(DiscordColor.Gold)));
     }
     
     public static async Task MessageHandler(DiscordClient _, DSharpPlus.EventArgs.MessageCreateEventArgs e) {
@@ -112,7 +179,7 @@ public class Commands : ApplicationCommandModule {
         Console.WriteLine(text + ": " + sentiment);
     }
 
-    private async Task ReceiveHandler(VoiceNextConnection _, VoiceReceiveEventArgs args) {
+    private static async Task ReceiveHandler(VoiceNextConnection _, VoiceReceiveEventArgs args) {
         if (args.User == null || (args.User.IsBot && Program.Config.IgnoreBots)) return;
 
         ulong id = args.User.Id;
@@ -151,4 +218,18 @@ public class Commands : ApplicationCommandModule {
         
         Console.WriteLine(args.User.Username + ": " + text + " - " + sentiment);
     }
+}
+
+public enum SortMode {
+    [ChoiceName("Average")]
+    Average,
+    [ChoiceName("Total")]
+    Total,
+}
+
+public enum SortOrder {
+    [ChoiceName("Best First")]
+    BestFirst,
+    [ChoiceName("Worst First")]
+    WorstFirst,
 }

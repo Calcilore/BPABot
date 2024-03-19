@@ -1,14 +1,14 @@
 ﻿using System.Globalization;
 using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using DSharpPlus.VoiceNext;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace SocialCreditScoreBot2;
 
 internal static class Program {
-    public static DiscordClient discord;
+    private static DiscordClient discord;
     public static ISpeechToText SpeechToText;
     public static ISentimentAnalyzer SentimentAnalyser;
     public static Config Config;
@@ -96,7 +96,22 @@ internal static class Program {
 
         await discord.ConnectAsync();
         Console.WriteLine("Started Bot");
+
+        Console.CancelKeyPress += OnExit;
         
         await Task.Delay(-1);
+    }
+    
+    private static void OnExit(object? sender, ConsoleCancelEventArgs e) {
+        Console.WriteLine("Exiting...");
+        ScoreManager.Save();
+
+        // leave all voice channels
+        foreach (DiscordGuild guild in discord.Guilds.Values) {
+            Commands.LeaveVoiceChannel(discord, guild);
+        }
+
+        e.Cancel = true;
+        Environment.Exit(0);
     }
 }

@@ -2,31 +2,34 @@ using Newtonsoft.Json;
 
 namespace SocialCreditScoreBot2;
 
-public class ScoreManager {
-    private static Dictionary<ulong, Score> scores;
+public static class ScoreManager {
+    public static Dictionary<ulong, Score> Scores { get; private set; }
+    private static Timer saveTimer;
 
     public static void Init() {
         if (!File.Exists("save.json")) {
-            scores = new Dictionary<ulong, Score>();
+            Scores = new Dictionary<ulong, Score>();
             Console.WriteLine("Creating New Save File");
             return;
         }
         
         string json = File.ReadAllText("save.json");
-        scores = JsonConvert.DeserializeObject<Dictionary<ulong, Score>>(json);
+        Scores = JsonConvert.DeserializeObject<Dictionary<ulong, Score>>(json);
         Console.WriteLine("Loaded Save File");
+        
+        saveTimer = new Timer(_ => Save(), null, 300000, 300000);
     }
 
     public static void AddScore(ulong id, double amount, string text) {
         Score score;
         
-        if (!scores.ContainsKey(id)) {
+        if (!Scores.ContainsKey(id)) {
             score = new Score();
 
-            scores[id] = score;
+            Scores[id] = score;
         }
         else {
-            score = scores[id];
+            score = Scores[id];
             score.Total += amount;
         }
         
@@ -41,16 +44,18 @@ public class ScoreManager {
         }
 
         score.Sentences++;
-        
-        File.WriteAllText("save.json", JsonConvert.SerializeObject(scores));
     }
 
     public static Score GetScore(ulong id) {
-        if (!scores.ContainsKey(id)) {
+        if (!Scores.ContainsKey(id)) {
             return new Score();
         }
         
-        return scores[id];
+        return Scores[id];
+    }
+
+    public static void Save() {
+        File.WriteAllText("save.json", JsonConvert.SerializeObject(Scores));
     }
 }
 
@@ -61,4 +66,20 @@ public class Score {
     public double WorstScoreValue = 1000000f;
     public string BestScoreText = "";
     public double BestScoreValue = -1000000f;
+    
+    public double GetBpa() {
+        return (Total / Sentences) * 2f + 3f;
+    }
+    
+    public double GetTotal() {
+        return Total * 20f;
+    }
+    
+    public double GetBest() {
+        return BestScoreValue * 2f + 3f;
+    }
+    
+    public double GetWorst() {
+        return WorstScoreValue * 2f + 3f;
+    }
 }
