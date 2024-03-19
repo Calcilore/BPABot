@@ -1,5 +1,4 @@
 using VaderSharp2;
-using Vosk;
 
 namespace SocialCreditScoreBot2.Implementations;
 
