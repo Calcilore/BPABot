@@ -18,6 +18,14 @@ public class Commands : ApplicationCommandModule {
         await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
         
         DiscordMember member = ctx.Member;
+        if (member == null) {
+            await ctx.EditResponseAsync(new DiscordWebhookBuilder()
+                .AddEmbed(new DiscordEmbedBuilder()
+                    .WithTitle("You cannot use this command in a DM")
+                    .WithColor(DiscordColor.Red)));
+            return;
+        }
+        
         if (member.VoiceState == null) {
             await ctx.EditResponseAsync(new DiscordWebhookBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
@@ -41,9 +49,15 @@ public class Commands : ApplicationCommandModule {
     
     [SlashCommand("leave", "Leaves the current voice channel.")]
     public async Task LeaveCommand(InteractionContext ctx) {
-        await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
+        if (ctx.Guild == null) {
+            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(new DiscordEmbedBuilder()
+                    .WithTitle("You cannot use this command in a DM")
+                    .WithColor(DiscordColor.Red)));
+            return;
+        }
         
-        VoiceNextExtension? vnext = ctx.Client.GetVoiceNext();
+        await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
         
         if (!LeaveVoiceChannel(ctx.Client, ctx.Guild)) {
             await ctx.EditResponseAsync(new DiscordWebhookBuilder()
@@ -88,8 +102,7 @@ public class Commands : ApplicationCommandModule {
             return;
         }
         
-        DiscordMember member = await ctx.Guild.GetMemberAsync(user.Id);
-        string username = member.Mention;
+        string username = user.Mention;
         
         // BPA is the average sentiment, and it has a range of 1 to 5
         double average = score.GetBpa();
@@ -114,6 +127,16 @@ public class Commands : ApplicationCommandModule {
     public async Task LeaderboardCommand(InteractionContext ctx, [
         Option("SortMode", "Whether to sort by total or average")] SortMode sort = SortMode.Total, 
         [Option("SortOrder", "Whether to sort by best or worst")] SortOrder order = SortOrder.BestFirst) {
+        
+        if (ctx.Guild == null) {
+            await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
+                .AddEmbed(new DiscordEmbedBuilder()
+                    .WithTitle("You cannot use this command in a DM")
+                    .WithColor(DiscordColor.Red)));
+            return;
+        }
+        
+        await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
         
         List<KeyValuePair<ulong, Score>> scores = ScoreManager.Scores.ToList();
         
@@ -161,7 +184,7 @@ public class Commands : ApplicationCommandModule {
                 message.Append($"{i+1}\\. {member.Mention} has a BPA of **{(scores[i].Value.GetBpa()):F2}** and a total of **{(scores[i].Value.GetTotal()):F3}**\n");
         }
         
-        await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
+        await ctx.EditResponseAsync(new DiscordWebhookBuilder()
             .AddEmbed(new DiscordEmbedBuilder()
                 .WithTitle("Leaderboard")
                 .WithDescription(message.ToString())
