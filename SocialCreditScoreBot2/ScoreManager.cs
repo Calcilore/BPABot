@@ -17,7 +17,7 @@ public class ScoreManager {
         Console.WriteLine("Loaded Save File");
     }
 
-    public static void AddScore(ulong id, float amount, string text) {
+    public static void AddScore(ulong id, double amount, string text) {
         Score score;
         
         if (!scores.ContainsKey(id)) {
@@ -55,10 +55,10 @@ public class ScoreManager {
 }
 
 public class Score {
-    public float Total = 0.0f;
+    public double Total = 0.0f;
     public uint Sentences = 0;
     public string WorstScoreText = "";
-    public float WorstScoreValue = 1000000f;
+    public double WorstScoreValue = 1000000f;
     public string BestScoreText = "";
-    public float BestScoreValue = -1000000f;
+    public double BestScoreValue = -1000000f;
 }

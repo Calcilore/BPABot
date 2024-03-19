@@ -83,15 +83,15 @@ public class Commands : ApplicationCommandModule {
         string username = member.Mention;
         
         // BPA is the average sentiment, and it has a range of 1 to 5
-        float average = (score.Total / score.Sentences) * 2f + 3f;
+        double average = (score.Total / score.Sentences) * 2f + 3f;
         DiscordColor color = average > 3.2 ? DiscordColor.Green : 
             average < 2.8 ? DiscordColor.Red : DiscordColor.Yellow;
         
         string message = $"{username}'s BPA is **{average:F2}**.\n";
-        message += $"{username} has a total of **{(score.Total*20f):F2}** Behavior Points.";
+        message += $"{username} has a total of **{(score.Total*20f):F3}** Behavior Points.";
         if (score.BestScoreText != "") {
-            message += $"\n\nBest Sentence: **{(score.BestScoreValue * 2f + 3f):F2}**: **\"{score.BestScoreText }\"**" + 
-                       $"\nWorst Sentence: **{(score.WorstScoreValue * 2f + 3f):F2}**: **\"{score.WorstScoreText}\"**";
+            message += $"\n\nBest Sentence: **{(score.BestScoreValue * 2f + 3f):F4}**: **\"{score.BestScoreText }\"**" + 
+                       $"\nWorst Sentence: **{(score.WorstScoreValue * 2f + 3f):F4}**: **\"{score.WorstScoreText}\"**";
         }
         
         await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder()
@@ -105,9 +105,9 @@ public class Commands : ApplicationCommandModule {
         if (e.Author.IsBot && Program.Config.IgnoreBots) return;
         
         string text = e.Message.Content;
-        float sentiment = await Program.SentimentAnalyser.Analyse(text);
+        double sentiment = await Program.SentimentAnalyser.Analyse(text);
         
-        ScoreManager.AddScore(e.Author.Id, sentiment/8f, text);
+        ScoreManager.AddScore(e.Author.Id, sentiment/8d, text);
         
         Console.WriteLine(text + ": " + sentiment);
     }
@@ -145,7 +145,7 @@ public class Commands : ApplicationCommandModule {
         // this is after wait is set to false so that the next speaking event can be handled while this is being processed
 
         string text = await Program.SpeechToText.Synthesize(data);
-        float sentiment = await Program.SentimentAnalyser.Analyse(text);
+        double sentiment = await Program.SentimentAnalyser.Analyse(text);
         
         ScoreManager.AddScore(id, sentiment, text);
         
