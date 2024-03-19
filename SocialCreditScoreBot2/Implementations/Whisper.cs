@@ -7,7 +7,6 @@ namespace SocialCreditScoreBot2.Implementations;
 
 public class Whisper : ISpeechToText {
     private WhisperFactory whisperFactory;
-    private WhisperProcessor processor;
     
     public async Task<bool> Init(string modelPath) {
         if (!File.Exists(modelPath)) {
@@ -23,10 +22,6 @@ public class Whisper : ISpeechToText {
         }
         
         whisperFactory = WhisperFactory.FromPath(modelPath);
-
-        processor = whisperFactory.CreateBuilder()
-            .WithLanguage("en")
-            .Build();
         
         return true;
     }
@@ -40,6 +35,10 @@ public class Whisper : ISpeechToText {
         for (int i = 0; i < floatData.Length; i++) {
             floatData[i] = BitConverter.ToInt16(data, i * 6) / (float)short.MaxValue;
         }
+
+        WhisperProcessor processor = whisperFactory.CreateBuilder()
+            .WithLanguage("en")
+            .Build();
         
         StringBuilder result = new StringBuilder();
         await foreach (SegmentData segment in processor.ProcessAsync(floatData)) {
