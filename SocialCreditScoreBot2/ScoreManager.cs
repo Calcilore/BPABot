@@ -55,6 +55,7 @@ public static class ScoreManager {
     }
 
     public static void Save() {
+        Console.WriteLine("Saving...");
         File.WriteAllText("save.json", JsonConvert.SerializeObject(Scores));
     }
 }
