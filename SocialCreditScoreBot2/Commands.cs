@@ -93,7 +93,7 @@ public class Commands : ApplicationCommandModule {
             user = ctx.User;
         }
         
-        Score score = ScoreManager.GetScore(user.Id);
+        Score score = await ScoreManager.GetScore(user.Id);
 
         if (score.Sentences == 0) {
             await ctx.CreateResponseAsync(new DiscordInteractionResponseBuilder().AddEmbed(new DiscordEmbedBuilder()
@@ -138,11 +138,8 @@ public class Commands : ApplicationCommandModule {
         
         await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
         
-        List<KeyValuePair<ulong, Score>> scores = ScoreManager.Scores.ToList();
-        
-        // remove users that are not in the current guild
-        IEnumerable<ulong> members = (await ctx.Guild.GetAllMembersAsync()).Select(v => v.Id);
-        scores.RemoveAll(v => !members.Contains(v.Key));
+        ulong[] members = (await ctx.Guild.GetAllMembersAsync()).Select(v => v.Id).ToArray();
+        List<KeyValuePair<ulong, Score>> scores = (await ScoreManager.GetUsersScores(members)).ToList();  // List because we need .Sort()
         
         // sort scores, in best first order
         scores.Sort((a, b) => {
@@ -197,7 +194,7 @@ public class Commands : ApplicationCommandModule {
         string text = e.Message.Content;
         double sentiment = await Program.SentimentAnalyser.Analyse(text);
         
-        ScoreManager.AddScore(e.Author.Id, sentiment/8d, text);
+        await ScoreManager.AddScore(e.Author.Id, sentiment/8d, text);
         
         Console.WriteLine(text + ": " + sentiment);
     }
@@ -237,7 +234,7 @@ public class Commands : ApplicationCommandModule {
         string text = await Program.SpeechToText.Synthesize(data);
         double sentiment = await Program.SentimentAnalyser.Analyse(text);
         
-        ScoreManager.AddScore(id, sentiment, text);
+        await ScoreManager.AddScore(id, sentiment, text);
         
         Console.WriteLine(args.User.Username + ": " + text + " - " + sentiment);
     }

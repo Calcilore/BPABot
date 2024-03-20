@@ -60,8 +60,10 @@ internal static class Program {
         }
         
         Console.WriteLine("Successfully loaded config");
-        
-        ScoreManager.Init();
+
+        if (!await ScoreManager.Init()) {
+            return;
+        }
         
         discord = new DiscordClient(new DiscordConfiguration() {
             Token = Config.Token,
@@ -104,7 +106,7 @@ internal static class Program {
     
     private static void OnExit(object? sender, ConsoleCancelEventArgs e) {
         Console.WriteLine("Exiting...");
-        ScoreManager.Save();
+        ScoreManager.Close();
 
         // leave all voice channels
         foreach (DiscordGuild guild in discord.Guilds.Values) {
