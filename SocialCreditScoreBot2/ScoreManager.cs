@@ -1,37 +1,32 @@
-using Newtonsoft.Json;
+using System.Diagnostics;
+using SocialCreditScoreBot2.Interfaces;
+using SocialCreditScoreBot2.Storage;
 
 namespace SocialCreditScoreBot2;
 
 public static class ScoreManager {
-    public static Dictionary<ulong, Score> Scores { get; private set; }
-    private static Timer saveTimer;
+    private static IStorageMethod? storage;
 
-    public static void Init() {
-        if (!File.Exists("save.json")) {
-            Scores = new Dictionary<ulong, Score>();
-            Console.WriteLine("Creating New Save File");
-            return;
+    public static async Task<bool> Init() {
+        storage = Program.Config.StorageMethod switch {
+            "json" => new JsonStorage(),
+            "sqlite" => new SqliteStorage(),
+            _ => null
+        };
+
+        if (storage == null) {
+            Console.WriteLine("Invalid StorageMethod in config, valid options are: json, sqlite");
+            return false;
         }
         
-        string json = File.ReadAllText("save.json");
-        Scores = JsonConvert.DeserializeObject<Dictionary<ulong, Score>>(json);
-        Console.WriteLine("Loaded Save File");
-        
-        saveTimer = new Timer(_ => Save(), null, 300000, 300000);
+        return await storage.Init();
     }
 
-    public static void AddScore(ulong id, double amount, string text) {
-        Score score;
+    public static async Task AddScore(ulong id, double amount, string text) {
+        Debug.Assert(storage != null);
+        Score score = await storage.GetScore(id);
         
-        if (!Scores.ContainsKey(id)) {
-            score = new Score();
-
-            Scores[id] = score;
-        }
-        else {
-            score = Scores[id];
-            score.Total += amount;
-        }
+        score.Total += amount;
         
         if (amount < score.WorstScoreValue) {
             score.WorstScoreValue = amount;
@@ -44,19 +39,23 @@ public static class ScoreManager {
         }
 
         score.Sentences++;
-    }
-
-    public static Score GetScore(ulong id) {
-        if (!Scores.ContainsKey(id)) {
-            return new Score();
-        }
         
-        return Scores[id];
+        // Save score
+        await storage.SetScore(id, score);
     }
 
-    public static void Save() {
-        Console.WriteLine("Saving...");
-        File.WriteAllText("save.json", JsonConvert.SerializeObject(Scores));
+    public static Task<Score> GetScore(ulong id) {
+        Debug.Assert(storage != null);
+        return storage.GetScore(id);
+    }
+    
+    public static Task<Dictionary<ulong, Score>> GetUsersScores(ulong[] users) {
+        Debug.Assert(storage != null);
+        return storage.GetUsersScores(users);
+    }
+
+    public static void Close() {
+        storage?.Close();
     }
 }
 
