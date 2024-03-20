@@ -17,21 +17,25 @@ internal static class Program {
         // prevents numbers from being formatted with commas
         Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
         
+        // load logging
+        Logging.Init();
+        Logging.Info("Started logging");
+        
         // load config
         if (!File.Exists("config.json")) {
             File.WriteAllText("config.json", JsonConvert.SerializeObject(new Config(), Formatting.Indented));
-            Console.WriteLine("Created config file");
+            Logging.Info("Created config file");
         }
         
         Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"))!;
 
         if (Config.Token is null or "ENTER TOKEN HERE") {
-            Console.WriteLine("Please enter your bot token in the config file");
+            Logging.Error("Please enter your bot token in the config file");
             return;
         }
 
         if (Config.Model == null) {
-            Console.WriteLine("Please enter your Speech Analyser model in the config file");
+            Logging.Error("Please enter your Speech Analyser model in the config file");
             return;
         }
 
@@ -45,7 +49,7 @@ internal static class Program {
                 break;
             
             default:
-                Console.WriteLine("Invalid SpeechToTextLibrary in config, valid options are: vosk, whisper");
+                Logging.Error("Invalid SpeechToTextLibrary in config, valid options are: vosk, whisper");
                 return;
         }
 
@@ -55,11 +59,11 @@ internal static class Program {
                 break;
             
             default:
-                Console.WriteLine("Invalid SentimentAnalyzerLibrary in config, valid options are: vader");
+                Logging.Error("Invalid SentimentAnalyzerLibrary in config, valid options are: vader");
                 return;
         }
         
-        Console.WriteLine("Successfully loaded config");
+        Logging.Info("Successfully loaded config");
 
         if (!await ScoreManager.Init()) {
             return;
@@ -75,29 +79,29 @@ internal static class Program {
         
         await commands.RefreshCommands();
         commands.RegisterCommands<Commands>();
-        Console.WriteLine("Registered Commands");
+        Logging.Info("Registered Commands");
 
         discord.MessageCreated += Commands.MessageHandler;
         
-        discord.UseVoiceNext(new VoiceNextConfiguration(){
+        discord.UseVoiceNext(new VoiceNextConfiguration() {
             EnableIncoming = true
         });
-        Console.WriteLine("Registered VoiceNext");
+        Logging.Info("Registered VoiceNext");
 
         if (!await SentimentAnalyser.Init()) {
-            Console.WriteLine("Failed to start SentimentAnalyser");
+            Logging.Error("Failed to start SentimentAnalyser");
             return;
         }
-        Console.WriteLine("Registered SentimentAnalyser");
+        Logging.Info("Registered SentimentAnalyser");
         
         if (!await SpeechToText.Init(Config.Model)) {
-            Console.WriteLine("Failed to start SpeechToText");
+            Logging.Error("Failed to start SpeechToText");
             return;
         }
-        Console.WriteLine("Registered SpeechToText");
+        Logging.Info("Registered SpeechToText");
 
         await discord.ConnectAsync();
-        Console.WriteLine("Started Bot");
+        Logging.Info("Started Bot");
 
         Console.CancelKeyPress += OnExit;
         
@@ -105,13 +109,15 @@ internal static class Program {
     }
     
     private static void OnExit(object? sender, ConsoleCancelEventArgs e) {
-        Console.WriteLine("Exiting...");
+        Logging.Info("Exiting...");
         ScoreManager.Close();
 
         // leave all voice channels
         foreach (DiscordGuild guild in discord.Guilds.Values) {
             Commands.LeaveVoiceChannel(discord, guild);
         }
+        
+        Logging.Stop();
 
         e.Cancel = true;
         Environment.Exit(0);

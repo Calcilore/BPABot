@@ -8,4 +8,5 @@ public class Config {
     public string WhisperModelType = "BaseEn";
     public bool IgnoreBots = true;
     public string? StorageMethod = "json";
+    public int STTSpeedThreshold = 4000;
 }

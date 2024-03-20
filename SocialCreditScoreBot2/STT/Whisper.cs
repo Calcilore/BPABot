@@ -10,9 +10,9 @@ public class Whisper : ISpeechToText {
     
     public async Task<bool> Init(string modelPath) {
         if (!File.Exists(modelPath)) {
-            Console.WriteLine("Model not found, downloading...");
+            Logging.Warning("Model not found, downloading...");
             if (!Enum.TryParse(Program.Config.WhisperModelType, true, out GgmlType type)) {
-                Console.WriteLine("Invalid WhisperModelType in config, valid options are: Tiny, TinyEn, Small, SmallEn, Base, BaseEn, Medium, MediumEm, LargeV1, LargeV2, LargeV3");
+                Logging.Error("Invalid WhisperModelType in config, valid options are: Tiny, TinyEn, Small, SmallEn, Base, BaseEn, Medium, MediumEm, LargeV1, LargeV2, LargeV3");
                 return false;
             }
 
@@ -47,8 +47,13 @@ public class Whisper : ISpeechToText {
         await foreach (SegmentData segment in processor.ProcessAsync(floatData)) {
             result.Append(segment.Text);
         }
-        
-        Console.WriteLine("Synthesized in " + sw.ElapsedMilliseconds + "ms");
+
+        if (sw.ElapsedMilliseconds > Program.Config.STTSpeedThreshold) {
+            Logging.Warning("Synthesis was slow, took " + sw.ElapsedMilliseconds + "ms");
+        }
+        else {
+            Logging.Debug("Synthesized in " + sw.ElapsedMilliseconds + "ms");
+        }
 
         return result.ToString();
     }

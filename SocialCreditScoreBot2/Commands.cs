@@ -36,10 +36,10 @@ public class Commands : ApplicationCommandModule {
         
         DiscordChannel channel = member.VoiceState.Channel;
 
-        Console.WriteLine("Joining voice channel");
+        Logging.Debug("Joining voice channel");
         VoiceNextConnection? connection = await channel.ConnectAsync();
         connection.VoiceReceived += ReceiveHandler;
-        Console.WriteLine("Joined voice channel");
+        Logging.Debug("Joined voice channel");
         
         await ctx.EditResponseAsync(new DiscordWebhookBuilder()
             .AddEmbed(new DiscordEmbedBuilder()
@@ -196,7 +196,7 @@ public class Commands : ApplicationCommandModule {
         
         await ScoreManager.AddScore(e.Author.Id, sentiment/8d, text);
         
-        Console.WriteLine(text + ": " + sentiment);
+        Logging.Verbose(text + ": " + sentiment);
     }
 
     private static async Task ReceiveHandler(VoiceNextConnection _, VoiceReceiveEventArgs args) {
@@ -219,7 +219,6 @@ public class Commands : ApplicationCommandModule {
         speakData[id].AddRange(args.PcmData.Span);
 
         // only save to file if we have enough data
-        // Console.WriteLine(speakData[id].Count / args.AudioFormat.SampleRate + " " + args.AudioFormat.SampleRate);
         if (speakData[id].Count <= SampleLength * args.AudioFormat.SampleRate) {
             speakWait[id] = false;
             return;
@@ -236,7 +235,7 @@ public class Commands : ApplicationCommandModule {
         
         await ScoreManager.AddScore(id, sentiment, text);
         
-        Console.WriteLine(args.User.Username + ": " + text + " - " + sentiment);
+        Logging.Verbose(args.User.Username + ": " + text + " - " + sentiment);
     }
 }
 
