@@ -15,7 +15,7 @@ public static class ScoreManager {
         };
 
         if (storage == null) {
-            Console.WriteLine("Invalid StorageMethod in config, valid options are: json, sqlite");
+            Logging.Error("Invalid StorageMethod in config, valid options are: json, sqlite");
             return false;
         }
         
