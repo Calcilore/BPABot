@@ -15,6 +15,9 @@ public class Whisper : ISpeechToText {
                 Console.WriteLine("Invalid WhisperModelType in config, valid options are: Tiny, TinyEn, Small, SmallEn, Base, BaseEn, Medium, MediumEm, LargeV1, LargeV2, LargeV3");
                 return false;
             }
+
+            // create the directory if it doesn't exist
+            Directory.CreateDirectory(Path.GetDirectoryName(modelPath));
             
             await using Stream modelStream = await WhisperGgmlDownloader.GetGgmlModelAsync(type);
             await using FileStream fileWriter = File.OpenWrite(modelPath);
