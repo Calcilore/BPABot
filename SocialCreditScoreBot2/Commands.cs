@@ -125,7 +125,7 @@ public class Commands : ApplicationCommandModule {
     
     [SlashCommand("leaderboard", "Gets the top 12 users with the highest social credit score.")]
     public async Task LeaderboardCommand(InteractionContext ctx, [
-        Option("SortMode", "Whether to sort by total or average")] SortMode sort = SortMode.Total, 
+        Option("SortMode", "Whether to sort by total or average")] SortMode sort = SortMode.Average, 
         [Option("SortOrder", "Whether to sort by best or worst")] SortOrder order = SortOrder.BestFirst) {
         
         if (ctx.Guild == null) {
@@ -169,8 +169,8 @@ public class Commands : ApplicationCommandModule {
         
         // get the range of scores to display
         IEnumerable<int> range = order switch {
-            SortOrder.BestFirst => Enumerable.Range(0, Math.Min(3, scores.Count)),
-            SortOrder.WorstFirst => Enumerable.Range(Math.Max(0, scores.Count-3), scores.Count).Reverse(),
+            SortOrder.BestFirst => Enumerable.Range(0, Math.Min(12, scores.Count)),
+            SortOrder.WorstFirst => Enumerable.Range(Math.Max(0, scores.Count-12), scores.Count).Reverse(),
             _ => throw new ArgumentOutOfRangeException(nameof(order), order, null)
         };
         
